@@ -64,8 +64,7 @@ sensor:
     unit_of_measurement: "%"
     accuracy_decimals: 0
     lambda: |-
-      // Multiply by 2.0 to counteract the physical voltage divider
-      float actual_voltage = id(battery_voltage_raw).state * 2.0;
+      float actual_voltage = id(battery_voltage_raw).state;
       
       // Map 3.2V (0%) to 4.2V (100%)
       float percentage = (actual_voltage - 3.2) / (4.2 - 3.2) * 100.0;
