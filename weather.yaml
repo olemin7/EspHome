@@ -4,7 +4,27 @@
 esphome:
   name: weather
   friendly_name: weather
-
+  # Check the hardware key state immediately after sensors initialize
+  on_boot:
+    - priority: -100.0
+      then:
+        - if:
+            condition:
+              binary_sensor.is_on: defeat_sleep_pin
+            then:
+              - logger.log: "🔧 Key detected! Sleep prevented for maintenance/OTA."
+              - deep_sleep.prevent: deep_sleep_config
+            else:
+              - logger.log: "🔋 Normal wake cycle. Waiting for transmission..."
+              
+              # Wait for connection to your native API (Home Assistant)
+              - wait_until:
+                  api.connected:
+              # Wait a brief moment to ensure component queues are flushed/published
+              - delay: 2s
+              
+              - logger.log: "✅ Data sent successfully. Going to sleep now."
+              - deep_sleep.enter: deep_sleep_config
 esp32:
   variant: esp32c3
   framework:
@@ -48,13 +68,14 @@ sensor:
       name: Temperature
       id: sensor_bme680_1_temperature
     address: 0x77
+    update_interval: 60s
     
   - platform: adc
     name: Battery Voltage
     id: battery_voltage_raw
     pin: GPIO0
     attenuation: 12db
-    update_interval: 10s
+    update_interval: 60s
     filters:
       - multiply: 2
     
@@ -73,3 +94,19 @@ sensor:
       if (percentage > 100.0) return 100.0;
       if (percentage < 0.0) return 0.0;
       return percentage;
+
+deep_sleep:
+  id: deep_sleep_config
+  sleep_duration: 10min
+  run_duration:
+    default: 60s
+
+# Define the physical pin/button you check on boot
+binary_sensor:
+  - platform: gpio
+    id: defeat_sleep_pin
+    name: "Defeat Sleep Key"
+    pin:
+      number: GPIO1
+      mode: INPUT_PULLUP
+      inverted: true
