@@ -50,3 +50,5 @@ sensor:
     temperature:
       name: Temperature
       id: sensor_bme680_1_temperature
+
+    address: 0x77
