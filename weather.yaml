@@ -54,6 +54,7 @@ sensor:
     id: battery_voltage_raw
     pin: GPIO0
     attenuation: 2.5db
+    update_interval: 10s
     
   - platform: template
     name: "Battery Percentage"
