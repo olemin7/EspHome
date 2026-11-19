@@ -78,12 +78,18 @@ sensor:
     update_interval: 60s
     filters:
       - multiply: 2
-    
+    on_value:
+      then:
+        - component.update: battery_percentage
+
+
   - platform: template
     name: "Battery Percentage"
+    id: battery_percentage
     device_class: battery
     unit_of_measurement: "%"
     accuracy_decimals: 0
+    update_interval: never 
     lambda: |-
       float actual_voltage = id(battery_voltage_raw).state;
       
