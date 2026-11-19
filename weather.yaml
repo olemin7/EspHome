@@ -28,3 +28,25 @@ wifi:
     password: "MEIzYN9W32Yx"
 
 captive_portal:
+
+i2c:
+  - id: i2c_1
+    scl: 6
+    sda: 7
+
+sensor:
+  - platform: bme680
+    id: sensor_bme680_1
+    i2c_id: i2c_1
+    gas_resistance:
+      name: Gas Resistance
+      id: sensor_bme680_1_gas_resistance
+    humidity:
+      name: Humidity
+      id: sensor_bme680_1_humidity
+    pressure:
+      name: Pressure
+      id: sensor_bme680_1_pressure
+    temperature:
+      name: Temperature
+      id: sensor_bme680_1_temperature
