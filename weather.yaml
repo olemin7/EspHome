@@ -47,5 +47,27 @@ sensor:
     temperature:
       name: Temperature
       id: sensor_bme680_1_temperature
-
     address: 0x77
+    
+  - platform: adc
+    name: Battery Voltage
+    id: battery_voltage_raw
+    pin: GPIO0
+    attenuation: auto 
+    
+  - platform: template
+    name: "Battery Percentage"
+    device_class: battery
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    lambda: |-
+      // Multiply by 2.0 to counteract the physical voltage divider
+      float actual_voltage = id(battery_voltage_raw).state * 2.0;
+      
+      // Map 3.2V (0%) to 4.2V (100%)
+      float percentage = (actual_voltage - 3.2) / (4.2 - 3.2) * 100.0;
+      
+      // Keep boundaries strictly between 0% and 100%
+      if (percentage > 100.0) return 100.0;
+      if (percentage < 0.0) return 0.0;
+      return percentage;
