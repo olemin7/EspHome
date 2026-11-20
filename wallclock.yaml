@@ -1,11 +1,15 @@
 # Board: Generic ESP32-C3 Board (Generic)
 # Definition: definitions/boards/generic-esp32c3/manifest.yaml
 
+substitutions:
+  # Set your preset rotation here before compiling (0, 90, 180, or 270)
+  display_rotation: "180"
+  display_reverse: "true"
+  
 esphome:
   name: wallclock
   friendly_name: WallClock
   name_add_mac_suffix: true
- 
 
 esp32:
   variant: esp32c3
@@ -32,8 +36,9 @@ wifi:
 captive_portal:
 
 globals:
-  id: time_sync_done
-  type: bool
+  - id: time_sync_done
+    type: bool
+    initial_value: "false"
 
 i2c:
   - id: i2c_1
@@ -46,21 +51,41 @@ sensor:
     id: ambient_light_raw
     pin: GPIO0
     attenuation: 12db
-    update_interval: 60s
-    device_class: illuminance
+    update_interval: 500ms
+    internal: true
+    on_value:
+      then:
+        - lambda: |-
+            ESP_LOGI("adc","  %f", x);
 
   - platform: htu21d
     id: sensor_htu21d_1
-    heater:
-      name: Heater
-      id: sensor_htu21d_1_heater
     humidity:
       name: Humidity
       id: sensor_htu21d_1_humidity
     temperature:
       name: Temperature
       id: sensor_htu21d_1_temperature
+    update_interval: 15min
 
+binary_sensor:
+  - platform: analog_threshold
+    id: day_night
+    sensor_id: ambient_light_raw
+    threshold: 2
+
+    internal: true
+    on_press:
+      then:
+        - lambda: |-
+            id(display_max7219digit_1).intensity(0);
+            ESP_LOGI("day_night", "night");
+
+    on_release:
+      then:
+        - lambda: |-
+            id(display_max7219digit_1).intensity(5);
+            ESP_LOGI("day_night", "day");
 spi:
   - id: spi_1
     clk_pin: GPIO4
@@ -71,12 +96,25 @@ display:
     id: display_max7219digit_1
     spi_id: spi_1
     cs_pin: GPIO5
+    intensity: 0
     lambda: |-
-      it.print(0, 0, id(digit_font), "12:34");
+      auto time_now = id(sntp_time).now();
+      if (time_now.is_valid()) {
+        it.printf(16, 0, id(font_clock), TextAlign::TOP_CENTER, "%d:%02d", time_now.hour, time_now.minute);
+      }else{
+        it.printf(31,0, id(font_default),TextAlign::RIGHT, "%s", get_mac_address_pretty().c_str());
+      }
+    num_chips: 4
+    rotate_chip: ${display_rotation}
+    scroll_enable: false
+    reverse_enable: ${display_reverse}
 
 font:
   - file: "fonts/font.bdf"
-    id: digit_font
+    id: font_clock
+    size: 8
+  - file: "fonts/pixelmix.ttf"
+    id: font_default
     size: 8
 
 time:
@@ -86,3 +124,7 @@ time:
       then:
         lambda: |-
           id(time_sync_done) = true;
+          
+    update_interval: 12h
+  
+ 
