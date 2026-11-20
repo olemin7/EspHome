@@ -1,0 +1,88 @@
+# Board: Generic ESP32-C3 Board (Generic)
+# Definition: definitions/boards/generic-esp32c3/manifest.yaml
+
+esphome:
+  name: wallclock
+  friendly_name: WallClock
+  name_add_mac_suffix: true
+ 
+
+esp32:
+  variant: esp32c3
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: "KDrseAa7DhsXLQjrymvYVTDSSm1liQZZ7gUGJ464Ff0="
+
+ota:
+  - platform: esphome
+    encryption:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: WallClock Fallback Hotspot
+    password: "MEIzYN9W32Yx"
+
+captive_portal:
+
+globals:
+  id: time_sync_done
+  type: bool
+
+i2c:
+  - id: i2c_1
+    scl: 9
+    sda: 8
+
+sensor:
+  - platform: adc
+    name: ambient_light
+    id: ambient_light_raw
+    pin: GPIO0
+    attenuation: 12db
+    update_interval: 60s
+    device_class: illuminance
+
+  - platform: htu21d
+    id: sensor_htu21d_1
+    heater:
+      name: Heater
+      id: sensor_htu21d_1_heater
+    humidity:
+      name: Humidity
+      id: sensor_htu21d_1_humidity
+    temperature:
+      name: Temperature
+      id: sensor_htu21d_1_temperature
+
+spi:
+  - id: spi_1
+    clk_pin: GPIO4
+    mosi_pin: GPIO6
+
+display:
+  - platform: max7219digit
+    id: display_max7219digit_1
+    spi_id: spi_1
+    cs_pin: GPIO5
+    lambda: |-
+      it.print(0, 0, id(digit_font), "12:34");
+
+font:
+  - file: "fonts/font.bdf"
+    id: digit_font
+    size: 8
+
+time:
+  - platform: sntp
+    id: sntp_time
+    on_time_sync:
+      then:
+        lambda: |-
+          id(time_sync_done) = true;
