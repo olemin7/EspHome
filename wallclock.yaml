@@ -3,20 +3,32 @@
 
 substitutions:
   # Set your preset rotation here before compiling (0, 90, 180, or 270)
-  display_rotation: "180"
+  #64:E8:33:88:11:DC
+  #64:E8:33:87:D7:D0
+  #display_rotation: "180"
+  #display_reverse: "true"
+  #----------------------
+  #64:E8:33:88:55:58
+  display_rotation: "0"
   display_reverse: "true"
   
 esphome:
   name: wallclock
   friendly_name: WallClock
   name_add_mac_suffix: true
-
+  
+  on_boot:
+  - priority: -100
+    then:
+      lambda: |-
+        id(display_max7219digit_1).update();
 esp32:
   variant: esp32c3
   framework:
     type: esp-idf
 
 logger:
+
 
 api:
   encryption:
@@ -32,6 +44,11 @@ wifi:
   ap:
     ssid: WallClock Fallback Hotspot
     password: "MEIzYN9W32Yx"
+
+  enable_btm: true  # 802.11v BSS Transition Management
+  enable_rrm: true  # 802.11k Radio Resource Management
+  use_address: 192.168.1.216 #64:E8:33:87:D7:D0
+  #use_address: 192.168.1.166 #64:E8:33:87:D7:D0
 
 captive_portal:
 
@@ -108,6 +125,8 @@ display:
     rotate_chip: ${display_rotation}
     scroll_enable: false
     reverse_enable: ${display_reverse}
+    update_interval: never
+    
 
 font:
   - file: "fonts/font.bdf"
@@ -117,14 +136,19 @@ font:
     id: font_default
     size: 8
 
-time:
+time:  
   - platform: sntp
     id: sntp_time
     on_time_sync:
       then:
         lambda: |-
-          id(time_sync_done) = true;
+          id(display_max7219digit_1).update();
           
     update_interval: 12h
-  
+    on_time:
+      - seconds: 0
+        minutes: /1
+        then:
+          lambda: |-
+            id(display_max7219digit_1).update();
  
