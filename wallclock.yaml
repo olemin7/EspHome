@@ -2,11 +2,11 @@
 # Definition: definitions/boards/generic-esp32c3/manifest.yaml
 
 substitutions:
-  # Set your preset rotation here before compiling (0, 90, 180, or 270)
   #64:E8:33:88:11:DC
   #64:E8:33:87:D7:D0
-  #display_rotation: "180"
-  #display_reverse: "true"
+  #64:E8:33:88:23:54
+  # display_rotation: "180"
+  # display_reverse: "true"
   #----------------------
   #64:E8:33:88:55:58
   display_rotation: "0"
@@ -62,6 +62,21 @@ i2c:
     scl: 9
     sda: 8
 
+number:
+  - platform: template
+    name: "Day/Night Threshold"
+    id: day_night_threshold_controller
+    min_value: 1.0
+    max_value: 3.0
+    step: 0.1
+    optimistic: true
+    restore_value: true 
+    initial_value: 2.0
+    # Trigger whenever the float changes from Home Assistant
+    on_value:
+      then:
+        - component.update: ambient_light_raw
+          
 sensor:
   - platform: adc
     name: ambient_light
@@ -69,7 +84,6 @@ sensor:
     pin: GPIO0
     attenuation: 12db
     update_interval: 500ms
-    internal: true
     on_value:
       then:
         - lambda: |-
@@ -89,9 +103,11 @@ binary_sensor:
   - platform: analog_threshold
     id: day_night
     sensor_id: ambient_light_raw
-    threshold: 2
-
     internal: true
+
+    threshold: !lambda |-
+      return id(day_night_threshold_controller).state;
+      
     on_press:
       then:
         - lambda: |-

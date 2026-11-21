@@ -46,6 +46,8 @@ wifi:
   ap:
     ssid: weather Fallback Hotspot
     password: "MEIzYN9W32Yx"
+  enable_btm: true  # 802.11v BSS Transition Management
+  enable_rrm: true  # 802.11k Radio Resource Management
 
 captive_portal:
 
@@ -103,7 +105,7 @@ sensor:
 
 deep_sleep:
   id: deep_sleep_config
-  sleep_duration: 10min
+  sleep_duration: 15min
   run_duration:
     default: 60s
 
