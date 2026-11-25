@@ -1,0 +1,137 @@
+# Board: ESP32-S3 DevKitC-1 (Espressif)
+# Definition: definitions/boards/esp32-s3-devkitc-1/manifest.yaml
+
+esphome:
+  name: alarm
+  friendly_name: Alarm
+
+esp32:
+  variant: esp32s3
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: "wGEJ5EEIeOf/2MHsh9YROVI9rZmcgTmOnZMsBdXcyVY="
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: Alarm Fallback Hotspot
+    password: "8BzuYwKKpW8W"
+
+captive_portal:
+
+light:
+  - platform: i2s_clockless_led_strip
+    name: Alarm LED
+    id: light_i2s_clockless_led_strip_1
+    pin: GPIO48
+    channel_colors: GRB
+    num_leds: 1
+    # Stay dark after reboot until Home Assistant sets an alarm state.
+    restore_mode: ALWAYS_OFF
+    effects:
+      # 1s fade up + 1s fade down = ~2s period; keeps the color set by the caller (amber).
+      - pulse:
+          name: "Yellow Pulse"
+          transition_length: 1s
+          update_interval: 1s
+          min_brightness: 10%
+          max_brightness: 100%
+      # 250ms red / 250ms off.
+      - strobe:
+          name: "Red Strobe"
+          colors:
+            - state: true
+              brightness: 100%
+              red: 100%
+              green: 0%
+              blue: 0%
+              duration: 250ms
+            - state: false
+              duration: 250ms
+
+select:
+  - platform: template
+    name: "Alarm State"
+    id: alarm_state
+    optimistic: true
+    options:
+      - "Off"
+      - "None"
+      - "Yellow"
+      - "Red"
+    initial_option: "Off"
+    # Do not restore from flash: the LED stays off after reboot until HA sends a state.
+    restore_value: false
+    on_value:
+      then:
+        - logger.log:
+            format: "Alarm state -> %s"
+            args: ["x.c_str()"]
+        - if:
+            condition:
+              lambda: 'return x == "Off";'
+            then:
+              - light.turn_off: light_i2s_clockless_led_strip_1
+        - if:
+            condition:
+              lambda: 'return x == "None";'
+            then:
+              - light.turn_on:
+                  id: light_i2s_clockless_led_strip_1
+                  effect: none
+                  brightness: 20%
+                  red: 0%
+                  green: 100%
+                  blue: 0%
+        - if:
+            condition:
+              lambda: 'return x == "Yellow";'
+            then:
+              # Set the amber color in the same call so the pulse uses it.
+              - light.turn_on:
+                  id: light_i2s_clockless_led_strip_1
+                  effect: "Yellow Pulse"
+                  brightness: 100%
+                  red: 100%
+                  green: 50%
+                  blue: 0%
+        - if:
+            condition:
+              lambda: 'return x == "Red";'
+            then:
+              - light.turn_on:
+                  id: light_i2s_clockless_led_strip_1
+                  effect: "Red Strobe"
+                  brightness: 100%
+                  red: 100%
+                  green: 0%
+                  blue: 0%
+
+# Follow the Ukraine Alarm Pro level directly. HA sends the current value on
+# every API (re)connect, so the LED gets the right state after an ESP reboot
+# without any HA automation.
+text_sensor:
+  - platform: homeassistant
+    id: uap_air_alert_level
+    entity_id: sensor.uap_31_air_alert_level
+    internal: true
+    on_value:
+      then:
+        - select.set:
+            id: alarm_state
+            option: !lambda |-
+              // none / yellow / red / unrecognized; anything else (unknown, unavailable) = no data.
+              if (x == "none") return "None";
+              if (x == "yellow") return "Yellow";
+              if (x == "red" || x == "unrecognized") return "Red";
+              return "Off";
