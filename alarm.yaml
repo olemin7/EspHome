@@ -6,8 +6,8 @@ esphome:
   friendly_name: Alarm
 
 esp32:
-  variant: esp32s3
-  flash_size: 8MB
+  variant: ESP32C3
+  flash_size: 4MB
   framework:
     type: esp-idf
 
@@ -33,7 +33,7 @@ light:
   - platform: i2s_clockless_led_strip
     name: Alarm LED
     id: light_i2s_clockless_led_strip_1
-    pin: GPIO48
+    pin: GPIO1
     channel_colors: GRB
     num_leds: 1
     # Stay dark after reboot until Home Assistant sets an alarm state.
@@ -135,3 +135,24 @@ text_sensor:
               if (x == "yellow") return "Yellow";
               if (x == "red" || x == "unrecognized") return "Red";
               return "Off";
+
+i2c:
+  - id: i2c_1
+    scl: 9
+    sda: 8
+
+sensor:
+  - platform: bme280_i2c
+    id: sensor_bme280_i2c_1
+    i2c_id: i2c_1
+    humidity:
+      name: Humidity
+      id: sensor_bme280_i2c_1_humidity
+    pressure:
+      name: Pressure
+      id: sensor_bme280_i2c_1_pressure
+    temperature:
+      name: Temperature
+      id: sensor_bme280_i2c_1_temperature
+     
+    address: 0x76
